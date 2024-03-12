@@ -1,3 +1,5 @@
+import json
+
 from discord import Intents, Client, Message
 import re
 
@@ -16,7 +18,10 @@ Useful error logging
 from bingo import *
 from responses import get_response
 
-TOKEN = 'MTIxNjI0ODkzNjczODU5MDc1MA.GIOK7i.nCir_rKClu7r5MG31bDOU9IIL-xQssjlRSMSic'
+with open('config.json') as f:
+    config = json.load(f)
+
+TOKEN = config.get('TOKEN')#'MTIxNjI0ODkzNjczODU5MDc1MA.GIOK7i.nCir_rKClu7r5MG31bDOU9IIL-xQssjlRSMSic'
 intents: Intents = Intents.default()
 intents.message_content = True  # NOQA
 intents.all()
