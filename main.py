@@ -8,7 +8,8 @@ Least Lucky
 Most XP
 Most Deaths
 Total gp earned by clan (done)
-
+Multiline commands for toortle brain
+Useful error logging
 """
 
 
@@ -69,7 +70,6 @@ async def on_message(message: Message) -> None:
         print(f"{message.embeds[0].description}")
 
         player = message.embeds[0].description.lower().split('\n')[0]
-
         dropdata = message.embeds[0].description.lower().split('\n')[1:]
         for drop in dropdata:
             dropname, value = extract_data_from_string(drop)
@@ -105,26 +105,23 @@ async def on_message(message: Message) -> None:
                                         "we can make a new board and teams\n"
                                         "\n"
                                         "__**TEAMS**__\n"
-                                        "!addteam Team Name - Adds a new team to the bingo\n"
-                                        "!deleteteam Team Name - Deletes a team from the bingo\n"
-                                        "!renameteam Old Name, New Name - Renames a bingo team\n"
-                                        "!setteamchannel Team Name, Channel ID\n"
+                                        "!addteam - Adds a new team to the bingo\n"
+                                        "!deleteteam - Deletes a team from the bingo\n"
+                                        "!renameteam - Renames a bingo team\n"
+                                        "!setteamchannel - Sets a chat channel to report team point gains\n"
                                         "\n"
                                         "__**PLAYERS**__\n"
                                         "If a player name changes during bingo just !addplayer with their new name to "
                                         "the team and delete their old name\n"
-                                        "!addplayer Team Name, Player Name - Adds a player to a given team\n"
-                                        "!removeplayer Team Name, Player Name - Removes a player from a given team\n"
+                                        "!addplayer - Adds a player to a given team\n"
+                                        "!removeplayer - Removes a player from a given team\n"
                                         "\n"
                                         "__**TILES**__\n"
-                                        "All tiles **must be named as their drop**. Eg: Elidinis Ward must be ("
-                                        "!addtile Elidinis' Ward 1)\n"
-                                        "!addtile Exact Item Name, Point Value, Recurrence - Recurrence means how "
-                                        "many times the tile can be repeated. If recurrence is not included we assume "
-                                        "a recurrence of 1\n"
-                                        "!deletetile Exact Item Name - Deletes the tile\n"
-                                        "!awardtile Tile Name, Team Name, Player Name - Awards a team a tile if the "
-                                        "bot misses it\n")
+                                        "All tiles **must be named as their drop**. Eg: Elidinis Ward must be "
+                                        "\"Elidinis' Ward\"\n"
+                                        "!addtile - Add a tile to the bingo\n"
+                                        "!deletetile - Deletes a tile\n"
+                                        "!awardtile - Awards a team a tile if the bot misses it\n")
 
         # Bingo
         if content.startswith("!newbingo"):
@@ -137,35 +134,52 @@ async def on_message(message: Message) -> None:
         # Teams
         if content.startswith("!addteam"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.new_team(parameters[0])
-                await send_message(message, "Team " + parameters[0] + " added!")
+                await send_message(message, "What is the team name?")
+                msg = await client.wait_for('message', timeout=60.0)
+                team_name = msg.content
+                bingo.new_team(team_name)
+                await send_message(message, f"Team {team_name} added!")
                 return
             except Exception as e:
                 await send_message(message, e.__str__())
 
         if content.startswith("!deleteteam"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.delete_team(parameters[0])
-                await send_message(message, "deleted team :(")
+                await send_message(message, "What is the team name?")
+                msg = await client.wait_for('message', timeout=60.0)
+                team_name = msg.content
+                bingo.delete_team(team_name)
+                await send_message(message, f"Team {team_name} deleted :(")
                 return
             except:
                 await send_message(message, "Incorrect command usage. !deleteteam Team Name")
 
         if content.startswith("!renameteam"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.rename_team(parameters[0], parameters[1])
-                await send_message(message, "Renamed team!")
+                await send_message(message, "What is the team you would like to rename?")
+                msg = await client.wait_for('message', timeout=60.0)
+                old_team_name = msg.content
+                await send_message(message, "What would you like to rename the team to?")
+                msg = await client.wait_For('message', timeout=60.0)
+                new_team_name = msg.content
+                bingo.rename_team(old_team_name, new_team_name)
+                await send_message(message, f"Team {old_team_name} has been updated to {new_team_name}")
+                return
             except:
-                await send_message(message, "Incorrect command usage. !renameteam Oldname, Newname")
+                await send_message(message, "I shit the bed. UwU")
 
         if content.startswith("!setteamchannel"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.set_team_channel(parameters[0], parameters[1])
-                await send_channel(bingo.teams[parameters[0]].channel, "Welcome to the bingo!")
+                await send_message(message, "What team would you like to set the chat channel for?")
+                msg = await client.wait_for('message',timeout=60)
+                team_name = msg.content
+                await send_message(message, "Right click on the chat channel and click \"Copy Channel ID\" and paste "
+                                            "it into the chat.")
+                msg = await client.wait_for('message', timeout=60)
+                channel_id = msg.content
+                bingo.set_team_channel(team_name, channel_id)
+                await send_message(message, "Channel set! Check the chat channel and make sure I introduced myself")
+                await send_channel(channel_id, "Welcome to the bingo!")
             except Exception as e:
                 await send_message(message, e.__str__())
 
@@ -173,17 +187,27 @@ async def on_message(message: Message) -> None:
 
         if content.startswith("!addplayer"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.add_team_member(parameters[0], parameters[1])
-                await send_message(message, "Added " + parameters[1] + " to team " + parameters[0] + "!")
+                await send_message(message, "What is the players name?")
+                msg = await client.wait_for('message', timeout=60)
+                player_name = msg.content
+                await send_message(message, "What team is this player on?")
+                msg = await client.wait_for('message', timeout=60)
+                team_name = msg.content
+                bingo.add_team_member(team_name, player_name)
+                await send_message(message, f"Player {player_name} added to team {team_name}!")
             except Exception as e:
                 await send_message(message, e.__str__())
 
         if content.startswith("!removeplayer"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.remove_team_member(parameters[0], parameters[1])
-                await send_message(message, "Removed " + parameters[1] + " from team " + parameters[0] + "!")
+                await send_message(message, "What is the players name?")
+                msg = await client.wait_for('message', timeout=60)
+                player_name = msg.content
+                await send_message(message, "What team is this player on?")
+                msg = await client.wait_for('message', timeout=60)
+                team_name = msg.content
+                bingo.remove_team_member(player_name, team_name)
+                await send_message(message, f"Player {player_name} has been removed from team {team_name} :(")
             except Exception as e:
                 await send_message(message, e.__str__())
 
@@ -191,28 +215,41 @@ async def on_message(message: Message) -> None:
 
         if content.startswith("!addtile"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                if len(parameters) == 2:
-                    bingo.add_tile(parameters[0], parameters[1], 1)
-                else:
-                    bingo.add_tile(parameters[0], parameters[1], parameters[2])
-                await send_message(message, "Tile added!")
+                await send_message(message, "What are the possible drops for this tile? (Separate them by \"/\")")
+                msg = await client.wait_for('message', timeout=60)
+                tile_name = msg.content
+                await send_message(message, "How many points is this tile worth?")
+                msg = await client.wait_for('message', timeout=60)
+                point_value = msg.content
+                await send_message(message, "How many times can this tile be completed?")
+                msg = await client.wait_for('message', timeout=60)
+                recurrence = msg.content
+                bingo.add_tile(tile_name, point_value, recurrence)
+                await send_message(message, f"Tile {tile_name} has been added for {point_value} points and can be repeated {recurrence} time(s)")
             except Exception as e:
                 await send_message(message, e.__str__())
 
         if content.startswith("!deletetile"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.delete_tile(parameters[0])
-                await send_message(message, "Tile deleted!")
+                await send_message(message, "What are the possible drops for the tile you would like to delete? (Separate them by \"/\")")
+                msg = await client.wait_for('message', timeout=60)
+                tile_name = msg.content
+                bingo.delete_tile(tile_name)
+                await send_message(message, f"Tile {tile_name} has been deleted")
             except Exception as e:
                 await send_message(message, e.__str__())
 
         if content.startswith("!awardtile"):
             try:
-                parameters = content[content.find(' ') + 1:].split(', ')
-                bingo.award_tile(parameters[0], parameters[1], parameters[2])
-                await send_message(message, "Tile awarded!")
+                await send_message(message, "What are the possible drops for the tile you would like to award? (Separate them by \"/\")")
+                msg = await client.wait_for('message', timeout=60)
+                tile_name = msg.content
+                await send_message(message, "What team is being awarded this tile?")
+                msg = await client.wait_for('message', timeout=60)
+                team_name = msg.content
+                await send_message(message, 'Which player completed this tile?')
+                player_name = msg.content
+                bingo.award_tile(tile_name, team_name, player_name)
             except Exception as e:
                 await send_message(message, e.__str__())
 # STEP 5: MAIN ENTRY POINT
