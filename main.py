@@ -67,14 +67,18 @@ async def on_message(message: Message) -> None:
     # Captain Hook
     if message.author.bot and message.author.name == "Captain Hook":
         print(f"{message.embeds[0].description}")
-        player, dropdata = message.embeds[0].description.lower().split('\n')
-        dropname, value = extract_data_from_string(dropdata)
-        value = value.lower().replace('k', "000")
-        bingo.add_value(player, int(value))
-        if bingo.is_tile(dropname.lower()):
-            team = bingo.find_team_by_player(player)
-            if bingo.award_tile(dropname.lower(), team.name, player.lower()):
-                await send_channel(team.channel, player + " got a " + dropname + " and " + team.name + " has been awarded " + str(bingo.get_tile(dropname).points) + " points!")
+
+        player = message.embeds[0].description.lower().split('\n')[0]
+
+        dropdata = message.embeds[0].description.lower().split('\n')[1:]
+        for drop in dropdata:
+            dropname, value = extract_data_from_string(drop)
+            value = value.lower().replace('k', "000")
+            bingo.add_value(player, int(value))
+            if bingo.is_tile(dropname.lower()):
+                team = bingo.find_team_by_player(player)
+                if bingo.award_tile(dropname.lower(), team.name, player.lower()):
+                    await send_channel(team.channel, player + " got a " + dropname + " and " + team.name + " has been awarded " + str(bingo.get_tile(dropname).points) + " points!")
         return
 
     """
