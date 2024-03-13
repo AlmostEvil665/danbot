@@ -38,6 +38,7 @@ class Player:
         self.gp_gained = 0
         self.team = team
         self.deaths = 0
+        self.killcount = defaultdict(int)
 
     def __str__(self):
         return self.name

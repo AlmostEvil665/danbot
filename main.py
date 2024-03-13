@@ -137,6 +137,9 @@ async def on_message(message: Message) -> None:
 
             if bingo.tile_completions[(team, tile)] < tile.recurrence: team.killcount[boss] = team.killcount[boss] + 1
 
+            player.killcount[boss] = player.killcount[boss] + 1
+            team.killcount[boss] = team.killcount[boss] + 1
+
             if team.killcount[boss] >= tile.kc_required:
                 bingo.award_tile(boss,team.name,player_name)
                 team.killcount[boss] = team.killcount[boss] - tile.kc_required
