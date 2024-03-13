@@ -30,6 +30,26 @@ global bingo
 bingo = Bingo()
 
 
+def convert_to_int(string_num):
+    suffixes = {'k': 1000, 'm': 1000000}
+    suffix = string_num[-1].lower()
+
+    if suffix in suffixes:
+        multiplier = suffixes[suffix]
+        num_str = string_num[:-1]
+    else:
+        num_str = string_num
+
+    # Remove commas if present and convert to float
+    num_str = num_str.replace(',', '')
+    num = float(num_str)
+
+    if suffix in suffixes:
+        num *= multiplier
+
+    return int(num)
+
+
 async def send_message(message: Message, content: str) -> None:
     channel = message.channel
     await channel.send(content)
@@ -84,21 +104,43 @@ async def on_message(message: Message) -> None:
     global bingo
     # Captain Hook
     if message.author.bot and message.author.name == "Captain Hook":
-        print(f"{message.embeds[0].description}")
+        image_link = message.embeds[0].image.url
+        hook_type = message.embeds[0].description.lower().split('\n')[0]
 
-        player = message.embeds[0].description.lower().split('\n')[1]
-        dropdata = message.embeds[0].description.lower().split('\n')[2:]
-        for drop in dropdata:
-            dropname, value = extract_data_from_string(drop)
-            value = value.lower().replace('k', "000")
-            bingo.add_value(player, int(value))
-            if bingo.is_tile(dropname.lower()):
-                team = bingo.find_team_by_player(player)
-                if bingo.award_tile(dropname.lower(), team.name, player.lower()):
-                    await send_channel(team.channel,
-                                       player + " got a " + dropname + " and " + team.name + " has been awarded " + str(
-                                           bingo.get_tile(dropname).points) + " points!")
-        return
+
+        if hook_type == "loot drop":
+            player = message.embeds[0].description.lower().split('\n')[1]
+            dropdata = message.embeds[0].description.lower().split('\n')[2:]
+            for drop in dropdata:
+                dropname, value = extract_data_from_string(drop)
+                value = convert_to_int(value)
+                bingo.add_value(player, int(value))
+                if bingo.is_tile(dropname.lower()):
+                    team = bingo.find_team_by_player(player)
+                    if bingo.award_tile(dropname.lower(), team.name, player.lower()):
+                        player.points_gained = player.points_gained + bingo.get_tile(dropname).points
+                        await send_channel(team.channel,
+                                           player + " got a " + dropname + " and " + team.name + " has been awarded " + str(
+                                               bingo.get_tile(dropname).points) + " points!\n" + image_link)
+            return
+        elif hook_type == "death":
+            player = message.embeds[0].description.lower().split('\n')[1]
+            bingo.add_death(player)
+
+        elif hook_type == "kc":
+            player_name = message.embeds[0].description.lower().split('\n')[1]
+            boss = re.findall(r'\[(.*?)\]', message.embeds[0].description.lower().split('\n')[2])[0].lower()
+            team = bingo.find_team_by_player(player_name)
+            tile = bingo.get_tile(boss)
+            player = bingo.get_player(player_name)
+            player.points_gained = player.points_gained + (1/tile.kc_required * tile.points)
+
+            if bingo.tile_completions[(team, tile)] < tile.recurrence: team.killcount[boss] = team.killcount[boss] + 1
+
+            if team.killcount[boss] >= tile.kc_required:
+                bingo.award_tile(boss,team.name,player_name)
+                team.killcount[boss] = team.killcount[boss] - tile.kc_required
+                await send_channel(team.channel, f"{player} finished the {boss} kc and the team has been awarded {tile.points} points!")
 
     """
     Default command
@@ -135,6 +177,7 @@ async def on_message(message: Message) -> None:
                                         "All tiles **must be named as their drop**. Eg: Elidinis Ward must be "
                                         "\"Elidinis' Ward\"\n"
                                         "!addtile - Add a tile to the bingo\n"
+                                        "!addkctile - Add a tile with a kc requirement to the bingo\n"
                                         "!deletetile - Deletes a tile\n"
                                         "!awardtile - Awards a team a tile if the bot misses it\n")
 
@@ -200,7 +243,7 @@ async def on_message(message: Message) -> None:
                 player_name = await get_input()
                 await send_message(message, "What team is this player on?")
                 team_name = await get_input()
-                bingo.add_team_member(team_name, player_name)
+                bingo.add_team_member(team_name, player_name.lower())
                 await send_message(message, f"Player {player_name} added to team {team_name}!")
             except Exception as e:
                 await send_message(message, e.__str__())
@@ -232,6 +275,24 @@ async def on_message(message: Message) -> None:
             except Exception as e:
                 await send_message(message, e.__str__())
 
+        if content.startswith("!addkctile"):
+            try:
+                await send_message(message, "What boss are we tracking for this tile?")
+                tile_name = await get_input()
+                tile_name = tile_name.lower()
+                await send_message(message, "How many points is this tile worth?")
+                point_value = await get_input()
+                await send_message(message, "How many times can this tile be completed?")
+                recurrence = await get_input()
+                recurrence = int(recurrence)
+                await send_message(message, "How many times does this monster need to be killed?")
+                kc_required = await get_input()
+                kc_required = int(kc_required)
+                bingo.add_kctile(tile_name, point_value, recurrence, kc_required)
+                await send_message(message,f"Tile {tile_name} has been added for {point_value} points and can be repeated {recurrence} time(s)")
+            except:
+                await send_message("I shit the bed UwU")
+
         if content.startswith("!deletetile"):
             try:
                 await send_message(message,
@@ -245,7 +306,7 @@ async def on_message(message: Message) -> None:
         if content.startswith("!awardtile"):
             try:
                 await send_message(message,
-                                   "What are the possible drops for the tile you would like to award? (Separate them by \"/\")")
+                                   "What are the possible drops/What boss is being tracked for this tile?")
                 tile_name = await get_input()
                 await send_message(message, "What team is being awarded this tile?")
                 team_name = await get_input()
