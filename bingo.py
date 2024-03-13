@@ -10,14 +10,14 @@ def debug_print(obj):
 class Tile:
     def __init__(self, name, points, recurrence):
         self.name = name
-        self.points = points
+        self.points = float(points)
         self.recurrence = recurrence
 
 
 class KcTile:
     def __init__(self, name, points, recurrence, kc_required):
         self.name = name
-        self.points = points
+        self.points = float(points)
         self.recurrence = recurrence
         self.kc_required = kc_required
 
@@ -28,12 +28,13 @@ class Team:
         self.members = {}
         self.points = 0
         self.channel = 0
+        self.killcount = defaultdict(int)
 
 
 class Player:
     def __init__(self, name, team):
         self.name = name
-        self.points_gained = 0
+        self.points_gained = 0.0
         self.gp_gained = 0
         self.team = team
         self.deaths = 0
@@ -113,7 +114,6 @@ class Bingo:
         if self.tile_completions[(team, tile)] < int(tile.recurrence):
             team.points = team.points + int(tile.points)
             self.tile_completions[(team, tile)] = self.tile_completions[(team, tile)] + 1
-            player.points_gained = player.points_gained + int(tile.points)
 
             self.game_tiles[tile_name] = tile
             self.teams[team_name] = team
@@ -135,3 +135,6 @@ class Bingo:
 
     def get_tile(self, tile_name):
         return self.game_tiles[tile_name]
+
+    def add_kctile(self, tile_name, point_value, recurrence, kc_required):
+        self.game_tiles[tile_name] = KcTile(tile_name, point_value, recurrence, kc_required)
