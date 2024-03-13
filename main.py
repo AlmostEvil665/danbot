@@ -84,21 +84,25 @@ async def on_message(message: Message) -> None:
     global bingo
     # Captain Hook
     if message.author.bot and message.author.name == "Captain Hook":
-        print(f"{message.embeds[0].description}")
-
-        player = message.embeds[0].description.lower().split('\n')[1]
-        dropdata = message.embeds[0].description.lower().split('\n')[2:]
-        for drop in dropdata:
-            dropname, value = extract_data_from_string(drop)
-            value = value.lower().replace('k', "000")
-            bingo.add_value(player, int(value))
-            if bingo.is_tile(dropname.lower()):
-                team = bingo.find_team_by_player(player)
-                if bingo.award_tile(dropname.lower(), team.name, player.lower()):
-                    await send_channel(team.channel,
-                                       player + " got a " + dropname + " and " + team.name + " has been awarded " + str(
-                                           bingo.get_tile(dropname).points) + " points!")
-        return
+        image_link = message.embeds[0].image.url
+        hook_type = message.embeds[0].description.lower().split('\n')[0]
+        if hook_type == "loot drop":
+            player = message.embeds[0].description.lower().split('\n')[1]
+            dropdata = message.embeds[0].description.lower().split('\n')[2:]
+            for drop in dropdata:
+                dropname, value = extract_data_from_string(drop)
+                value = value.lower().replace('k', "000")
+                bingo.add_value(player, int(value))
+                if bingo.is_tile(dropname.lower()):
+                    team = bingo.find_team_by_player(player)
+                    if bingo.award_tile(dropname.lower(), team.name, player.lower()):
+                        await send_channel(team.channel,
+                                           player + " got a " + dropname + " and " + team.name + " has been awarded " + str(
+                                               bingo.get_tile(dropname).points) + " points!\n" + image_link)
+            return
+        elif hook_type == "death":
+            player = message.embeds[0].description.lower().split('\n')[1]
+            bingo.add_death(player)
 
     """
     Default command
