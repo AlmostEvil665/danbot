@@ -109,23 +109,24 @@ async def on_message(message: Message) -> None:
 
 
         if hook_type == "loot drop":
-            player = message.embeds[0].description.lower().split('\n')[1]
+            player = bingo.get_player(message.embeds[0].description.lower().split('\n')[1])
+            playername = player.name
             dropdata = message.embeds[0].description.lower().split('\n')[2:]
             for drop in dropdata:
                 dropname, value = extract_data_from_string(drop)
                 value = convert_to_int(value)
-                bingo.add_value(player, int(value))
+                bingo.add_value(playername, int(value))
                 if bingo.is_tile(dropname.lower()):
-                    team = bingo.find_team_by_player(player)
-                    if bingo.award_tile(dropname.lower(), team.name, player.lower()):
+                    team = bingo.find_team_by_player(playername)
+                    if bingo.award_tile(dropname.lower(), team.name, playername.lower()):
                         player.points_gained = player.points_gained + bingo.get_tile(dropname).points
                         await send_channel(team.channel,
-                                           player + " got a " + dropname + " and " + team.name + " has been awarded " + str(
+                                           playername + " got a " + dropname + " and " + team.name + " has been awarded " + str(
                                                bingo.get_tile(dropname).points) + " points!\n" + image_link)
             return
         elif hook_type == "death":
-            player = message.embeds[0].description.lower().split('\n')[1]
-            bingo.add_death(player)
+            player_name = message.embeds[0].description.lower().split('\n')[1]
+            bingo.add_death(player_name)
 
         elif hook_type == "kc":
             player_name = message.embeds[0].description.lower().split('\n')[1]
