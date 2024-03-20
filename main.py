@@ -12,6 +12,7 @@ Most Deaths
 Total gp earned by clan (done)
 Multiline commands for toortle brain
 Useful error logging
+actual tile names not related to drop names
 """
 
 from bingo import *
@@ -107,7 +108,6 @@ async def on_message(message: Message) -> None:
         image_link = message.embeds[0].image.url
         hook_type = message.embeds[0].description.lower().split('\n')[0]
 
-
         if hook_type == "loot drop":
             player = bingo.get_player(message.embeds[0].description.lower().split('\n')[1])
             playername = player.name
@@ -117,12 +117,13 @@ async def on_message(message: Message) -> None:
                 value = convert_to_int(value)
                 bingo.add_value(playername, int(value))
                 if bingo.is_tile(dropname.lower()):
+                    tile = bingo.get_tile(dropname.lower())
                     team = bingo.find_team_by_player(playername)
-                    if bingo.award_tile(dropname.lower(), team.name, playername.lower()):
-                        player.points_gained = player.points_gained + bingo.get_tile(dropname).points
+                    if bingo.award_tile(tile.name, team.name, playername.lower()):
+                        player.points_gained = player.points_gained + tile.points
                         await send_channel(team.channel,
                                            playername + " got a " + dropname + " and " + team.name + " has been awarded " + str(
-                                               bingo.get_tile(dropname).points) + " points!\n" + image_link)
+                                               tile.points) + " points!\n" + image_link)
             return
         elif hook_type == "death":
             player_name = message.embeds[0].description.lower().split('\n')[1]
@@ -135,12 +136,9 @@ async def on_message(message: Message) -> None:
             tile = bingo.get_tile(boss)
             player = bingo.get_player(player_name)
             player.points_gained = player.points_gained + (1/tile.kc_required * tile.points)
-
             if bingo.tile_completions[(team, tile)] < tile.recurrence: team.killcount[boss] = team.killcount[boss] + 1
-
             player.killcount[boss] = player.killcount[boss] + 1
             team.killcount[boss] = team.killcount[boss] + 1
-
             if team.killcount[boss] >= tile.kc_required:
                 bingo.award_tile(boss,team.name,player_name)
                 team.killcount[boss] = team.killcount[boss] - tile.kc_required
@@ -154,7 +152,6 @@ async def on_message(message: Message) -> None:
                 parameters = content[content.find(' ') + 1:].split(', ')
             except Exception as e:
                 await send_message(message, e.__str__())
-    
     """
 
     content = message.content.lower()
@@ -264,7 +261,6 @@ async def on_message(message: Message) -> None:
                 await send_message(message, e.__str__())
 
         # Tiles
-
         if content.startswith("!addtile"):
             try:
                 await send_message(message, "What are the possible drops for this tile? (Separate them by \"/\")")
@@ -319,6 +315,13 @@ async def on_message(message: Message) -> None:
                 bingo.award_tile(tile_name, team_name, player_name)
             except Exception as e:
                 await send_message(message, e.__str__())
+
+        if content.startswith("!defaultsetup"):
+            bingo.new_team("uwu")
+            bingo.add_team_member("uwu", "danbis")
+            bingo.add_tile("coin pouch/bones/iron bolts", 3, 300)
+            bingo.set_team_channel("uwu", 1217159356601208904)
+
 
 
 # STEP 5: MAIN ENTRY POINT
