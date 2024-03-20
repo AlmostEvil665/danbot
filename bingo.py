@@ -43,7 +43,6 @@ class Player:
     def __str__(self):
         return self.name
 
-
 class Bingo:
     def __init__(self):
         self.teams = {}
@@ -127,15 +126,23 @@ class Bingo:
     def delete_tile(self, tile_name):
         del self.game_tiles[tile_name]
 
+    def get_tile(self, tile_name):
+        try:
+            for key, value in self.game_tiles.items():
+                if tile_name in key:
+                    return value
+            return None
+        except:
+            return None
+
     def is_tile(self, tile_name):
         try:
-            var = self.game_tiles[tile_name]
-            return True
+            for key in self.game_tiles.keys():
+                if tile_name in key:
+                    return True
+            return False
         except:
             return False
-
-    def get_tile(self, tile_name):
-        return self.game_tiles[tile_name]
 
     def add_kctile(self, tile_name, point_value, recurrence, kc_required):
         self.game_tiles[tile_name] = KcTile(tile_name, point_value, recurrence, kc_required)
